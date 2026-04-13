@@ -6,7 +6,6 @@ public class SwiftBodyDetectionPlugin: NSObject, FlutterPlugin {
     private var eventSink: FlutterEventSink?
     private var cameraSession: CameraSession?
     private var poseDetectionEnabled = false
-    private var bodyMaskDetectionEnabled = false
     private let poseDetector = MLKitPoseDetector(stream: true)
     private let selfieSegmenter = MLKitSelfieSegmenter()
     
@@ -108,18 +107,6 @@ public class SwiftBodyDetectionPlugin: NSObject, FlutterPlugin {
             result(nil)
             return
             
-        // Handle enableSelfieSegmentation calls.
-        case "enableBodyMaskDetection":
-            self.bodyMaskDetectionEnabled = true
-            result(nil)
-            return
-            
-        // Handle disableSelfieSegmentation calls.
-        case "disableBodyMaskDetection":
-            self.bodyMaskDetectionEnabled = false
-            result(nil)
-            return
-            
         // Handle startCameraStreamPoseDetection calls.
         case "startCameraStream":
             guard self.cameraSession == nil else {
@@ -191,15 +178,6 @@ public class SwiftBodyDetectionPlugin: NSObject, FlutterPlugin {
                 eventSink([
                     "type": "pose",
                     "pose": pose?.toMap() as Any
-                ])
-            }
-            
-            if self.bodyMaskDetectionEnabled {
-                let mask = self.selfieSegmenter.detectSegmentationMask(image: portraitImage)
-                
-                eventSink([
-                    "type": "mask",
-                    "mask": mask?.toMap() as Any
                 ])
             }
         } catch {
