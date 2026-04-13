@@ -62,7 +62,6 @@ import 'package:body_detection/png_image.dart';
 
 PngImage pngImage = PngImage.from(bytes, width: width, height: height);
 final pose = await BodyDetection.detectPose(image: pngImage);
-final bodyMask = await BodyDetection.detectBodyMask(image: pngImage);
 ```
 
 This plugin provides an extension to flutter's Image widget that converts it to the PNG format so you can use any image source that the widget supports as an input: local asset, network, memory, etc.
@@ -186,59 +185,6 @@ Widget build(BuildContext context) {
 
 For details see [Google MLKit Pose Detection API documentation](https://developers.google.com/ml-kit/vision/pose-detection).
 
-Detected body mask is returned as a double-valued buffer of length `width * height` indicating the confidence that a particular pixel covers area that is recognized to be a body. Size of the body mask can differ from the size of the input image as this makes calculations faster and makes it possible to run acceptably well in real-time on slower devices as well.
-
-To display the mask you can for example decode the buffer as a dart image using the buffer value as an alpha component:
-
-```dart
-final mask = await BodyDetection.detectBodyMask(image: pngImage);
-final bytes = mask.buffer
-    .expand((it) => [0, 0, 0, (it * 255).toInt()])
-    .toList();
-ui.decodeImageFromPixels(Uint8List.fromList(bytes), mask.width, mask.height, ui.PixelFormat.rgba8888, (image) {
-  // Do something with the image, for example set it as a widget's state field so you can pass it to a custom painter for drawing in the build method.
-});
-```
-
-Then for example to draw transparent blue overlay over the background you could have a custom painter like this:
-
-```dart
-class MaskPainter extends CustomPainter {
-  MaskPainter({
-    required this.mask,
-  });
-
-  final ui.Image mask;
-  final maskPaint = Paint()
-    ..colorFilter = const ColorFilter.mode(
-        Color.fromRGBO(0, 0, 255, 0.5), BlendMode.srcOut);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawImageRect(
-        mask,
-        Rect.fromLTWH(0, 0, mask.width.toDouble(), mask.height.toDouble()),
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        maskPaint);
-  }
-}
-```
-
-And use that in your widget tree together with original image:
-
-```dart
-@override
-Widget build(BuildContext context) {
-  return CustomPaint(
-    child: _sourceImage,
-    foregroundPainter: MaskPainter(mask: _maskImage),
-  );
-```
-
-For details see [Google MLKit Selfie Segmentation API documentation](https://developers.google.com/ml-kit/vision/selfie-segmentation).
-
-You can see the complete example in the [plugin's repository](https://github.com/0x48lab/flutter_body_detection).
-
 ### Camera Feed Detection
 
 In addition to single image detection, this plugin supports real-time detection of either or both the pose and body mask from camera feed. Both the camera image acquisition and detection run on the native side, so we eliminate the cost of data serialization we would need if we used a separate flutter plugins for each.
@@ -249,7 +195,6 @@ To start and stop the camera stream, use the following methods while passing cal
 await BodyDetection.startCameraStream(
   onFrameAvailable: (ImageResult image) {},
   onPoseAvailable: (Pose? pose) {},
-  onMaskAvailable: (BodyMask? mask) {},
 );
 await BodyDetection.stopCameraStream();
 ```
@@ -259,9 +204,6 @@ Detectors are disabled by default. To enable or disable particular detector use 
 ```dart
 await BodyDetection.enablePoseDetection();
 await BodyDetection.disablePoseDetection();
-
-await BodyDetection.enableBodyMaskDetection();
-await BodyDetection.disableBodyMaskDetection();
 ```
 
 You can run those both before starting the camera stream as well as while the stream is already running.

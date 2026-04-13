@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:body_detection/models/image_result.dart';
 import 'package:body_detection/models/pose.dart';
-import 'package:body_detection/models/body_mask.dart';
 import 'package:body_detection/png_image.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
@@ -26,7 +25,6 @@ class _MyAppState extends State<MyApp> {
   int _selectedTabIndex = 0;
 
   bool _isDetectingPose = false;
-  bool _isDetectingBodyMask = false;
 
   Image? _selectedImage;
 
@@ -51,16 +49,6 @@ class _MyAppState extends State<MyApp> {
     _handlePose(pose);
   }
 
-  Future<void> _detectImageBodyMask() async {
-    PngImage? pngImage = await _selectedImage?.toPngImage();
-    if (pngImage == null) return;
-    setState(() {
-      _imageSize = Size(pngImage.width.toDouble(), pngImage.height.toDouble());
-    });
-    final mask = await BodyDetection.detectBodyMask(image: pngImage);
-    _handleBodyMask(mask);
-  }
-
   Future<void> _startCameraStream() async {
     // Permission handler removed - add permission_handler package if needed
     await BodyDetection.startCameraStream(
@@ -68,10 +56,6 @@ class _MyAppState extends State<MyApp> {
       onPoseAvailable: (pose) {
         if (!_isDetectingPose) return;
         _handlePose(pose);
-      },
-      onMaskAvailable: (mask) {
-        if (!_isDetectingBodyMask) return;
-        _handleBodyMask(mask);
       },
     );
   }
@@ -115,30 +99,6 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void _handleBodyMask(BodyMask? mask) {
-    // Ignore if navigated out of the page.
-    if (!mounted) return;
-
-    if (mask == null) {
-      setState(() {
-        _maskImage = null;
-      });
-      return;
-    }
-
-    final bytes = mask.buffer
-        .expand(
-          (it) => [0, 0, 0, (it * 255).toInt()],
-        )
-        .toList();
-    ui.decodeImageFromPixels(Uint8List.fromList(bytes), mask.width, mask.height,
-        ui.PixelFormat.rgba8888, (image) {
-      setState(() {
-        _maskImage = image;
-      });
-    });
-  }
-
   Future<void> _toggleDetectPose() async {
     if (_isDetectingPose) {
       await BodyDetection.disablePoseDetection();
@@ -149,19 +109,6 @@ class _MyAppState extends State<MyApp> {
     setState(() {
       _isDetectingPose = !_isDetectingPose;
       _detectedPose = null;
-    });
-  }
-
-  Future<void> _toggleDetectBodyMask() async {
-    if (_isDetectingBodyMask) {
-      await BodyDetection.disableBodyMaskDetection();
-    } else {
-      await BodyDetection.enableBodyMaskDetection();
-    }
-
-    setState(() {
-      _isDetectingBodyMask = !_isDetectingBodyMask;
-      _maskImage = null;
     });
   }
 
@@ -227,10 +174,6 @@ class _MyAppState extends State<MyApp> {
                 child: const Text('Detect pose'),
               ),
               OutlinedButton(
-                onPressed: _detectImageBodyMask,
-                child: const Text('Detect body mask'),
-              ),
-              OutlinedButton(
                 onPressed: _resetState,
                 child: const Text('Clear'),
               ),
@@ -258,12 +201,6 @@ class _MyAppState extends State<MyApp> {
                 child: _isDetectingPose
                     ? const Text('Turn off pose detection')
                     : const Text('Turn on pose detection'),
-              ),
-              OutlinedButton(
-                onPressed: _toggleDetectBodyMask,
-                child: _isDetectingBodyMask
-                    ? const Text('Turn off body mask detection')
-                    : const Text('Turn on body mask detection'),
               ),
             ],
           ),

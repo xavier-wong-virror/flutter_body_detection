@@ -23,7 +23,6 @@ class BodyDetectionPlugin: FlutterPlugin, MethodChannel.MethodCallHandler, Event
   private var eventSink: EventChannel.EventSink? = null
   private var cameraSession: CameraSession? = null
   private var poseDetectionEnabled = false
-  private var bodyMaskDetectionEnabled = false
   private val poseDetector = MLKitPoseDetector(true)
   private val selfieSegmenter = MLKitSelfieSegmenter()
 
@@ -69,14 +68,6 @@ class BodyDetectionPlugin: FlutterPlugin, MethodChannel.MethodCallHandler, Event
         poseDetectionEnabled = false
         result.success(null)
       }
-      "enableBodyMaskDetection" -> {
-        bodyMaskDetectionEnabled = true
-        result.success(null)
-      }
-      "disableBodyMaskDetection" -> {
-        bodyMaskDetectionEnabled = false
-        result.success(null)
-      }
       "startCameraStream" -> {
         val session = CameraSession(context)
         session.start { imageProxy, rotationDegrees ->
@@ -113,7 +104,7 @@ class BodyDetectionPlugin: FlutterPlugin, MethodChannel.MethodCallHandler, Event
       "height" to height
     ))
 
-    if ((poseDetectionEnabled || bodyMaskDetectionEnabled) && bitmap != null) {
+    if (poseDetectionEnabled && bitmap != null) {
       val image = InputImage.fromBitmap(bitmap, 0)
       var count = 2
 
@@ -124,47 +115,22 @@ class BodyDetectionPlugin: FlutterPlugin, MethodChannel.MethodCallHandler, Event
         }
       }
 
-      if (poseDetectionEnabled) {
-        val processed = poseDetector.process(image, OnSuccessListener { pose ->
-          eventSink?.success(mapOf(
-            "type" to "pose",
-            "pose" to pose.toMap()
-          ))
+      val processed = poseDetector.process(image, OnSuccessListener { pose ->
+        eventSink?.success(mapOf(
+          "type" to "pose",
+          "pose" to pose.toMap()
+        ))
 
-          imageRefDown()
-        }, OnFailureListener { _ ->
-          eventSink?.success(mapOf(
-            "type" to "pose",
-            "pose" to null
-          ))
-
-          imageRefDown()
-        })
-        if (!processed) imageRefDown()
-      } else {
         imageRefDown()
-      }
+      }, OnFailureListener { _ ->
+        eventSink?.success(mapOf(
+          "type" to "pose",
+          "pose" to null
+        ))
 
-      if (bodyMaskDetectionEnabled) {
-        val processed = selfieSegmenter.process(image, OnSuccessListener { mask ->
-          eventSink?.success(mapOf(
-            "type" to "mask",
-            "mask" to mask.toMap()
-          ))
-
-          imageRefDown()
-        }, OnFailureListener { _ ->
-          eventSink?.success(mapOf(
-            "type" to "mask",
-            "mask" to null
-          ))
-
-          imageRefDown()
-        })
-        if (!processed) imageRefDown()
-      } else {
         imageRefDown()
-      }
+      })
+      if (!processed) imageRefDown()
     }
   }
 
