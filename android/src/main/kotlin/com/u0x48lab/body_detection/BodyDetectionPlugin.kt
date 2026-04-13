@@ -90,6 +90,14 @@ class BodyDetectionPlugin: FlutterPlugin, MethodChannel.MethodCallHandler, Event
         cameraSession = null
         result.success(true)
       }
+      "switchFrontCamera" -> {
+        cameraSession?.switchCamera(true)
+        result.success(true)
+      }
+      "switchBackCamera" -> {
+        cameraSession?.switchCamera(false)
+        result.success(true)
+      }
       else -> {
         result.notImplemented()
       }
