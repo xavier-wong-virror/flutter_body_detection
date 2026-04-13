@@ -91,4 +91,20 @@ class BodyDetection {
       throw BodyDetectionException(e.code, e.message);
     }
   }
+
+  static Future<void> switchFrontCamera() async {
+    try {
+      await _channel.invokeMethod<void>('switchFrontCamera');
+    } on PlatformException catch (e) {
+      throw BodyDetectionException(e.code, e.message);
+    }
+  }
+
+  static Future<void> switchBackCamera() async {
+    try {
+      await _channel.invokeMethod<void>('switchBackCamera');
+    } on PlatformException catch (e) {
+      throw BodyDetectionException(e.code, e.message);
+    }
+  }
 }
